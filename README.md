@@ -148,17 +148,157 @@ Recebe uma pergunta via HTTP e retorna resultados da busca.
 [Webhook] → [VectorGov: Buscar] → [Respond to Webhook]
 ```
 
-### 2. Integração com OpenAI
+<details>
+<summary>📋 Clique para copiar o workflow JSON</summary>
+
+```json
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "busca-juridica",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "query": "={{ $json.body.query }}",
+        "topK": 5,
+        "searchMode": "default"
+      },
+      "name": "VectorGov",
+      "type": "n8n-nodes-vectorgov.vectorGov",
+      "position": [450, 300],
+      "credentials": {
+        "vectorGovApi": {
+          "id": "SEU_CREDENTIAL_ID",
+          "name": "VectorGov API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "VectorGov", "type": "main", "index": 0 }]] },
+    "VectorGov": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  }
+}
+```
+
+</details>
+
+### 2. Integração com OpenAI (RAG Completo)
 
 Busca contexto no VectorGov e gera resposta com GPT-4.
 
 ```
-[Webhook] → [VectorGov: Buscar] → [OpenAI: Chat] → [Respond to Webhook]
+[Webhook] → [VectorGov: Buscar] → [Code: Formatar] → [OpenAI: Chat] → [Respond to Webhook]
 ```
 
-Configuração do OpenAI:
-- Use o campo `system_prompt` retornado pelo VectorGov (ative "Incluir System Prompt")
-- Passe os `hits` como contexto no user message
+<details>
+<summary>📋 Clique para copiar o workflow JSON</summary>
+
+```json
+{
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chat-juridico",
+        "responseMode": "responseNode"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "query": "={{ $json.body.query }}",
+        "topK": 5,
+        "searchMode": "precise",
+        "advancedOptions": {
+          "includeSystemPrompt": true,
+          "promptStyle": "detailed"
+        }
+      },
+      "name": "VectorGov",
+      "type": "n8n-nodes-vectorgov.vectorGov",
+      "position": [400, 300],
+      "credentials": {
+        "vectorGovApi": {
+          "id": "SEU_CREDENTIAL_ID",
+          "name": "VectorGov API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const hits = $input.first().json.hits || [];\nconst context = hits.map(h => `[${h.chunk_id}] ${h.text}`).join('\\n\\n');\nconst systemPrompt = $input.first().json.system_prompt || 'Você é um assistente jurídico especializado em licitações.';\n\nreturn {\n  systemPrompt,\n  context,\n  query: $('Webhook').first().json.body.query,\n  queryId: $input.first().json.query_id\n};"
+      },
+      "name": "Formatar Contexto",
+      "type": "n8n-nodes-base.code",
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4o-mini",
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "={{ $json.systemPrompt }}"
+            },
+            {
+              "role": "user",
+              "content": "Contexto:\n{{ $json.context }}\n\nPergunta: {{ $json.query }}"
+            }
+          ]
+        }
+      },
+      "name": "OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "position": [800, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "SEU_OPENAI_CREDENTIAL_ID",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { answer: $json.message.content, query_id: $('Formatar Contexto').first().json.queryId } }}"
+      },
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "position": [1000, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "VectorGov", "type": "main", "index": 0 }]] },
+    "VectorGov": { "main": [[{ "node": "Formatar Contexto", "type": "main", "index": 0 }]] },
+    "Formatar Contexto": { "main": [[{ "node": "OpenAI", "type": "main", "index": 0 }]] },
+    "OpenAI": { "main": [[{ "node": "Respond", "type": "main", "index": 0 }]] }
+  }
+}
+```
+
+</details>
 
 ### 3. Chatbot no Telegram
 
@@ -166,12 +306,85 @@ Configuração do OpenAI:
 [Telegram Trigger] → [VectorGov: Buscar] → [OpenAI: Chat] → [Telegram: Send Message]
 ```
 
-### 4. Monitoramento de Documentos
+### 4. Monitoramento de Documentos com Notificação
 
 Verifica novos documentos diariamente e notifica no Slack.
 
 ```
 [Schedule (diário)] → [VectorGov: Listar Documentos] → [IF novo documento] → [Slack: Send Message]
+```
+
+<details>
+<summary>📋 Clique para copiar o workflow JSON</summary>
+
+```json
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 24 }]
+        }
+      },
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "operation": "listDocuments",
+        "limit": 100
+      },
+      "name": "VectorGov",
+      "type": "n8n-nodes-vectorgov.vectorGov",
+      "position": [400, 300],
+      "credentials": {
+        "vectorGovApi": {
+          "id": "SEU_CREDENTIAL_ID",
+          "name": "VectorGov API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const docs = $input.first().json.documents || [];\nconst ontem = new Date(Date.now() - 24*60*60*1000);\nconst novos = docs.filter(d => new Date(d.created_at) > ontem);\n\nif (novos.length === 0) {\n  return [];\n}\n\nreturn novos.map(d => ({ json: d }));"
+      },
+      "name": "Filtrar Novos",
+      "type": "n8n-nodes-base.code",
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#juridico",
+        "text": "📄 Novo documento indexado: *{{ $json.document_id }}*\nTipo: {{ $json.tipo_documento }}\nAno: {{ $json.ano }}"
+      },
+      "name": "Slack",
+      "type": "n8n-nodes-base.slack",
+      "position": [800, 300],
+      "credentials": {
+        "slackApi": {
+          "id": "SEU_SLACK_CREDENTIAL_ID",
+          "name": "Slack API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule": { "main": [[{ "node": "VectorGov", "type": "main", "index": 0 }]] },
+    "VectorGov": { "main": [[{ "node": "Filtrar Novos", "type": "main", "index": 0 }]] },
+    "Filtrar Novos": { "main": [[{ "node": "Slack", "type": "main", "index": 0 }]] }
+  }
+}
+```
+
+</details>
+
+### 5. Feedback Automático com Análise de Sentimento
+
+Coleta feedback de usuários e envia para o VectorGov automaticamente.
+
+```
+[Webhook] → [OpenAI: Análise Sentimento] → [VectorGov: Send Feedback]
 ```
 
 ## Documentos Disponíveis
@@ -193,6 +406,75 @@ A base do VectorGov inclui documentos jurídicos brasileiros relacionados a lici
 | Pro | 500 |
 
 Verifique seu limite em [https://vectorgov.io/playground](https://vectorgov.io/playground).
+
+## Troubleshooting
+
+### Erro 401 - Unauthorized
+
+**Causa**: API Key inválida ou não configurada.
+
+**Solução**:
+1. Verifique se a API Key está correta em **Credentials**
+2. Confirme que a chave começa com `vg_`
+3. Gere uma nova chave em [vectorgov.io/playground](https://vectorgov.io/playground)
+
+### Erro 429 - Rate Limit Exceeded
+
+**Causa**: Limite de requisições por minuto excedido.
+
+**Solução**:
+1. Aguarde 60 segundos antes de tentar novamente
+2. Reduza a frequência de requisições no workflow
+3. Considere upgrade do plano em [vectorgov.io](https://vectorgov.io)
+
+### Node não aparece no n8n
+
+**Causa**: Instalação incompleta ou cache.
+
+**Solução**:
+1. Reinicie o n8n
+2. Para Docker: `docker restart n8n`
+3. Para instalação local: `n8n start --tunnel`
+4. Verifique logs: `docker logs n8n`
+
+### Resultados vazios na busca
+
+**Causa**: Query muito específica ou filtros restritivos.
+
+**Solução**:
+1. Tente uma query mais genérica
+2. Remova filtros de ano/tipo de documento
+3. Verifique se o documento existe com "Listar Documentos"
+
+### Timeout em buscas
+
+**Causa**: Modo "Preciso" pode demorar mais.
+
+**Solução**:
+1. Use modo "Rápido" para respostas mais rápidas
+2. Reduza o número de resultados (top_k)
+3. Aumente o timeout do n8n se necessário
+
+## Changelog
+
+### v0.1.0 (2025-01-20)
+- 🎉 Lançamento inicial
+- ✅ Operação Search com filtros e modos de busca
+- ✅ Operação List Documents
+- ✅ Operação Get Document
+- ✅ Operação Estimate Tokens
+- ✅ Operação Send Feedback
+- ✅ Suporte a system prompts para integração com LLMs
+
+## Contribuindo
+
+Contribuições são bem-vindas! Por favor:
+
+1. Fork o repositório
+2. Crie uma branch: `git checkout -b feature/nova-funcionalidade`
+3. Commit suas mudanças: `git commit -m 'feat: Adiciona nova funcionalidade'`
+4. Push para a branch: `git push origin feature/nova-funcionalidade`
+5. Abra um Pull Request
 
 ## Suporte
 
