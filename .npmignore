@@ -1,0 +1,33 @@
+# Source files (only publish dist)
+credentials/
+nodes/
+*.ts
+!dist/**/*.js
+!dist/**/*.d.ts
+
+# Config files
+tsconfig.json
+gulpfile.js
+.eslintrc.js
+.gitignore
+
+# Development
+.git/
+.github/
+.vscode/
+.idea/
+
+# Documentation (keep README)
+docs/
+
+# Tests
+tests/
+__tests__/
+*.test.ts
+*.spec.ts
+coverage/
+
+# Other
+.env
+.env.local
+*.log
