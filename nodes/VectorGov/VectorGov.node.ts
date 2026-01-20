@@ -1,9 +1,9 @@
 import {
+  IDataObject,
   IExecuteFunctions,
   INodeExecutionData,
   INodeType,
   INodeTypeDescription,
-  NodeConnectionType,
 } from 'n8n-workflow';
 
 import { searchOperation } from './actions/search.operation';
@@ -24,8 +24,8 @@ export class VectorGov implements INodeType {
     defaults: {
       name: 'VectorGov',
     },
-    inputs: [NodeConnectionType.Main],
-    outputs: [NodeConnectionType.Main],
+    inputs: ['main'],
+    outputs: ['main'],
     credentials: [
       {
         name: 'vectorGovApi',
@@ -327,7 +327,7 @@ export class VectorGov implements INodeType {
 
     for (let i = 0; i < items.length; i++) {
       try {
-        let result: object;
+        let result: IDataObject;
 
         switch (operation) {
           case 'search':

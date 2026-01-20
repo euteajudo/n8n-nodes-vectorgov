@@ -1,9 +1,9 @@
-import { IExecuteFunctions, IHttpRequestMethods } from 'n8n-workflow';
+import { IDataObject, IExecuteFunctions, IHttpRequestMethods } from 'n8n-workflow';
 
 export async function listDocumentsOperation(
   this: IExecuteFunctions,
   itemIndex: number,
-): Promise<object> {
+): Promise<IDataObject> {
   const credentials = await this.getCredentials('vectorGovApi');
   const baseUrl = credentials.baseUrl as string;
 
@@ -16,5 +16,5 @@ export async function listDocumentsOperation(
     json: true,
   });
 
-  return response as object;
+  return response as IDataObject;
 }

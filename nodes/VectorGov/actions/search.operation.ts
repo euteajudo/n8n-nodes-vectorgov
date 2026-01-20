@@ -1,4 +1,4 @@
-import { IExecuteFunctions, IHttpRequestMethods } from 'n8n-workflow';
+import { IDataObject, IExecuteFunctions, IHttpRequestMethods } from 'n8n-workflow';
 
 interface SearchFilters {
   documentType?: string;
@@ -14,7 +14,7 @@ interface AdvancedOptions {
 export async function searchOperation(
   this: IExecuteFunctions,
   itemIndex: number,
-): Promise<object> {
+): Promise<IDataObject> {
   const credentials = await this.getCredentials('vectorGovApi');
   const baseUrl = credentials.baseUrl as string;
 
@@ -62,5 +62,5 @@ export async function searchOperation(
     json: true,
   });
 
-  return response as object;
+  return response as IDataObject;
 }
