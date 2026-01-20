@@ -35,7 +35,8 @@ export class VectorGovApi implements ICredentialType {
     type: 'generic',
     properties: {
       headers: {
-        'X-API-Key': '={{$credentials.apiKey}}',
+        'Authorization': 'Bearer ={{$credentials.apiKey}}',
+        'Content-Type': 'application/json',
       },
     },
   };
@@ -43,8 +44,13 @@ export class VectorGovApi implements ICredentialType {
   test: ICredentialTestRequest = {
     request: {
       baseURL: '={{$credentials.baseUrl}}',
-      url: '/api/v1/sdk/documents',
-      method: 'GET',
+      url: '/api/v1/sdk/search',
+      method: 'POST',
+      json: true,
+      body: {
+        query: 'teste conexão',
+        top_k: 1,
+      },
     },
   };
 }

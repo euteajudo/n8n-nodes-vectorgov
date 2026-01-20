@@ -109,7 +109,7 @@ export class VectorGov implements INodeType {
         displayName: 'Modo de Busca',
         name: 'searchMode',
         type: 'options',
-        default: 'default',
+        default: 'balanced',
         displayOptions: {
           show: {
             operation: ['search'],
@@ -117,8 +117,8 @@ export class VectorGov implements INodeType {
         },
         options: [
           {
-            name: 'Padrão',
-            value: 'default',
+            name: 'Balanceado',
+            value: 'balanced',
             description: 'Balanceado entre velocidade e precisão',
           },
           {

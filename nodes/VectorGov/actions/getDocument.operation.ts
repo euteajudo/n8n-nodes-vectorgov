@@ -9,9 +9,15 @@ export async function getDocumentOperation(
 
   const documentId = this.getNodeParameter('documentId', itemIndex) as string;
 
+  const apiKey = credentials.apiKey as string;
+
   const response = await this.helpers.httpRequest({
     method: 'GET' as IHttpRequestMethods,
     url: `${baseUrl}/api/v1/sdk/documents/${encodeURIComponent(documentId)}`,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
     json: true,
   });
 

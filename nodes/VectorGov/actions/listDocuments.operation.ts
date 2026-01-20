@@ -9,9 +9,15 @@ export async function listDocumentsOperation(
 
   const limit = this.getNodeParameter('limit', itemIndex) as number;
 
+  const apiKey = credentials.apiKey as string;
+
   const response = await this.helpers.httpRequest({
     method: 'GET' as IHttpRequestMethods,
     url: `${baseUrl}/api/v1/sdk/documents`,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
     qs: { limit },
     json: true,
   });

@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-vectorgov",
-  "version": "0.1.0",
+  "version": "0.1.6",
   "description": "n8n node para busca semântica em documentos jurídicos brasileiros via VectorGov",
   "keywords": [
     "n8n-community-node-package",

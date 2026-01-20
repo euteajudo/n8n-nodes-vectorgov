@@ -11,6 +11,8 @@ export async function estimateTokensOperation(
   const query = this.getNodeParameter('tokenQuery', itemIndex, '') as string;
   const systemPrompt = this.getNodeParameter('tokenSystemPrompt', itemIndex, '') as string;
 
+  const apiKey = credentials.apiKey as string;
+
   const body: Record<string, unknown> = { context };
 
   if (query) {
@@ -23,6 +25,10 @@ export async function estimateTokensOperation(
   const response = await this.helpers.httpRequest({
     method: 'POST' as IHttpRequestMethods,
     url: `${baseUrl}/api/v1/sdk/tokens`,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
     body,
     json: true,
   });

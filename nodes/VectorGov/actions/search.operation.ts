@@ -55,9 +55,15 @@ export async function searchOperation(
     }
   }
 
+  const apiKey = credentials.apiKey as string;
+
   const response = await this.helpers.httpRequest({
     method: 'POST' as IHttpRequestMethods,
     url: `${baseUrl}/api/v1/sdk/search`,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
     body,
     json: true,
   });
